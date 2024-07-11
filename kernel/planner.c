@@ -28,6 +28,7 @@
 int wisp_set; //Referring to extern variable declared in kernel/ifftw.h
 #endif
 
+
 /* GNU Coding Standards, Sec. 5.2: "Please write the comments in a GNU
    program in English, because English is the one language that nearly
    all programmers in all countries can read."
@@ -923,7 +924,7 @@ static plan *mkplan(planner *ego, const problem *p)
 #ifdef AMD_TOP_N_PLANNER
 	       if (wisp_set && AMD_OPT_TOP_N > 1)
 		    evaluate_plan(ego, pln, p);
-#endif	       	       
+#endif
 	       goto skip_search;
 	  }
 	  else if (ego->nowisdom_hook) /* for MPI, make sure lack of wisdom */
@@ -931,6 +932,14 @@ static plan *mkplan(planner *ego, const problem *p)
      }
 
  do_search:
+#ifdef AMD_APP_OPT_GENERATE_WISDOM
+     /* When an application cannot find a plan from the wisdom file,
+      * the planner creates a best plan by searching/evaluating multiple plans.
+      * Below flag sets the permission to export best plan to the wisdom file for
+      * future reference.
+      */
+     wisdom_write_set = 1;
+#endif
      /* cannot search in WISDOM_ONLY mode */
      if (ego->wisdom_state == WISDOM_ONLY)
 	  goto wisdom_is_bogus;
