@@ -396,6 +396,9 @@ int X(ithreads_init)(void)
    the same as the data parameter passed to X(spawn_loop).
 
    This function returns only after all the threads have completed. */
+#ifdef AMD_FMV_AUTO
+__attribute__((target_clones(TARGET_STRINGS)))
+#endif
 void X(spawn_loop)(int loopmax, int nthr, spawn_function proc, void *data)
 {
      int block_size;
