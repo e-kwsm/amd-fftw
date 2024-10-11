@@ -25,9 +25,12 @@
 #include "kernel/ifftw.h"
 #include "dft/dft.h"
 #include "rdft/rdft.h"
-
-static int wisdom_one_time_read = 0;
 #endif
+
+#ifdef AMD_APP_OPT_GENERATE_WISDOM
+int wisdom_write_set = 0;
+#endif
+
 static planner_hook_t before_planner_hook = 0, after_planner_hook = 0;
 
 void X(set_planner_hooks)(planner_hook_t before, planner_hook_t after)
@@ -176,19 +179,18 @@ static int create_amd_app_layer(int sign, unsigned *flags, problem *prb, app_lay
 
 	*flags &= ~(FFTW_ESTIMATE | FFTW_MEASURE | FFTW_PATIENT | FFTW_EXHAUSTIVE);
 	*flags |= FFTW_PATIENT;
+
 #ifdef AMD_APP_OPT_USE_WISDOM
-	if (wisdom_one_time_read == 0)
-	{
-		if (!X(import_wisdom_from_filename)("wis.dat"))
-		{
-			//fprintf(stderr, "apiplan: ERROR reading wisdom wis.dat\n");
-		}
-#ifdef AMD_APP_OPT_GENERATE_WISDOM
-		wisdom_one_time_read = 1;
-#endif
+        /* 
+	 * Enable applications to use the wisdom file if already present.
+         * If the wisdom file is not availabe/applicable, the planner creates
+         * a new plan for the problem.
+         */
+        if (!X(import_wisdom_from_filename)("wis.dat"))
+        {
+		 //fprintf(stderr, "apiplan: ERROR reading wisdom wis.dat\n");
 	}
 #endif
-
 	if(prb->adt->problem_kind == PROBLEM_DFT)
 	{
 		problem_dft *pdft = (problem_dft *) prb;
@@ -424,14 +426,16 @@ static void destroy_amd_app_layer(problem *prb, app_layer_data *app_layer)
 {
 	int inplace = 0;
 
-#ifdef AMD_APP_OPT_USE_WISDOM
-	if (wisdom_one_time_read == 0)
-	{
 #ifdef AMD_APP_OPT_GENERATE_WISDOM
-		wisdom_one_time_read = 1;
-#endif
+       /*
+        * The write permission is set by the planner to export wisdom.
+        * The newly generated plan is exported to the wisdom file.
+        */
+       if (wisdom_write_set)
+       {
 		X(export_wisdom_to_filename)("wis.dat");
-	}
+		wisdom_write_set = 0;
+       }
 #endif
 
 	if(prb->adt->problem_kind == PROBLEM_DFT)
